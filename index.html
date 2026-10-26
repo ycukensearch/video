@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Йцукен Видеоредактор</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{background:#000;color:#fff;font-family:'Segoe UI',Roboto,system-ui,sans-serif;display:flex;align-items:center;justify-content:center}
+
+.editor{
+  width:100%;
+  max-width:520px;
+  height:100dvh;
+  max-height:900px;
+  background:#000;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  overflow:hidden;
+}
+@media(min-width:600px){
+  .editor{border-radius:28px;border:1px solid #222;height:94vh;max-height:900px;box-shadow:0 25px 60px -12px rgba(0,0,0,.9)}
+}
+
+/* HEADER — надёжный flex без выталкивания */
+.header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  background:#0a0a0a;
+  border-bottom:1px solid #1a1a1a;
+  flex-shrink:0;
+  min-width:0;
+}
+.logo{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:14px;
+  font-weight:700;
+  color:#fff;
+  flex:1 1 auto;
+  min-width:0;
+  overflow:hidden;
+}
+.logo i{color:#ff8c00;font-size:16px;flex-shrink:0}
+.logo span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.header-actions{display:flex;gap:6px;flex-shrink:0}
+.hbtn{
+  background:#1a1a1a;border:none;color:#ddd;
+  font-size:13px;
+  width:34px;height:34px;
+  border-radius:10px;
+  display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:.15s;
+  flex-shrink:0;
+}
+.hbtn:hover{background:#2a2a2a;color:#fff}
+.hbtn:disabled{opacity:.35;cursor:not-allowed}
+.hbtn.primary{background:#ff8c00;color:#fff;width:auto;padding:0 10px;gap:5px;font-weight:600;font-size:12px}
+.hbtn.primary:hover{background:#ff9f2e}
+.hbtn.danger{color:#ff8c00;background:#2a1c10}
+.hbtn.danger:hover{background:#3a2515}
+
+/* PREVIEW */
+.preview-container{
+  flex:1 1 auto;
+  min-height:0;
+  display:flex;align-items:center;justify-content:center;
+  background:#000;
+  position:relative;
+  overflow:hidden;
+  padding:6px;
+}
+.video-wrapper{
+  position:relative;
+  display:inline-flex;
+  max-width:100%;
+  max-height:100%;
+  justify-content:center;align-items:center;
+}
+#videoPreview,#imagePreview{
+  max-width:100%;max-height:100%;
+  border-radius:8px;background:#111;
+  display:none;object-fit:contain;
+}
+#videoPreview{transition:filter .15s}
+
+.video-placeholder{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  color:#555;text-align:center;padding:18px;
+  background:#141414;border-radius:20px;
+  width:min(90%,320px);
+  aspect-ratio:16/9;
+  border:2px dashed #222;
+}
+.video-placeholder i{font-size:40px;color:#333}
+.video-placeholder p{font-size:12px;color:#777;line-height:1.4}
+
+.overlay-preview{
+  position:absolute;top:8px;left:8px;right:8px;
+  display:flex;justify-content:space-between;
+  pointer-events:none;z-index:5;gap:6px;
+}
+.badge-preview{
+  background:#000000aa;backdrop-filter:blur(6px);
+  padding:3px 9px;border-radius:20px;font-size:10px;
+  color:#ff8c00;border:1px solid #ffffff15;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50%;
+}
+.video-text-overlay{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  color:#fff;font-weight:700;text-shadow:0 2px 12px rgba(0,0,0,.8);
+  pointer-events:none;white-space:nowrap;z-index:4;
+  max-width:90%;overflow:hidden;
+}
+.watermark-preview{
+  position:absolute;
+  color:rgba(255,255,255,0.92);font-weight:600;letter-spacing:.3px;
+  text-shadow:0 1px 3px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.85);
+  pointer-events:none;z-index:6;font-family:'Segoe UI',sans-serif;
+  display:none;user-select:none;line-height:1;
+}
+
+/* TIMELINE */
+.timeline-section{background:#0a0a0a;border-top:1px solid #1a1a1a;flex-shrink:0;padding:6px 0 4px}
+.timeline-top{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:0 12px 6px;gap:8px;min-width:0;
+}
+.tl-label{
+  font-size:10px;color:#666;font-weight:600;
+  display:flex;align-items:center;gap:5px;
+  letter-spacing:.5px;flex-shrink:0;
+  white-space:nowrap;
+}
+.tl-label i{color:#ff8c00}
+.tl-controls{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.zoom-btn{
+  background:#161616;border:1px solid #222;color:#aaa;
+  width:24px;height:24px;border-radius:7px;font-size:10px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.zoom-btn:hover{background:#222;color:#fff}
+.zoom-level{font-size:10px;color:#666;min-width:26px;text-align:center}
+.time-display{font-size:11px;color:#ff8c00;font-weight:600;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+.timeline-scroll{
+  overflow-x:auto;overflow-y:hidden;
+  padding:0 12px 4px;
+  white-space:nowrap;
+  display:flex;gap:2px;
+  position:relative;-webkit-overflow-scrolling:touch;
+  min-height:72px;align-items:center;
+  scrollbar-width:thin;scrollbar-color:#333 #111;
+}
+.timeline-scroll::-webkit-scrollbar{height:3px}
+.timeline-scroll::-webkit-scrollbar-track{background:#0a0a0a}
+.timeline-scroll::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+
+.clip{
+  height:64px;flex-shrink:0;
+  background:linear-gradient(180deg,#1a1a1a,#111);
+  border-radius:6px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#555;font-size:9px;
+  border:2px solid #1f1f1f;transition:.15s;cursor:pointer;
+  position:relative;overflow:hidden;
+}
+.clip.active{border-color:#ff8c00;box-shadow:0 0 0 1px #ff8c00,0 0 12px rgba(255,140,0,.3)}
+.clip i{font-size:16px;color:#444}
+.clip.active i{color:#ff8c00}
+.clip .clip-label{
+  position:absolute;bottom:2px;left:2px;right:2px;
+  font-size:8px;background:#00000088;padding:1px 3px;
+  border-radius:6px;color:#888;text-align:center;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.clip.active .clip-label{color:#ff8c00}
+.clip .clip-type{
+  position:absolute;top:2px;right:2px;font-size:8px;
+  background:#ff8c00;color:#000;padding:1px 4px;border-radius:6px;font-weight:700;
+}
+.clip.photo .clip-type{background:#2196F3;color:#fff}
+
+.playhead{
+  position:absolute;top:0;bottom:0;width:2px;
+  background:#ff8c00;pointer-events:none;z-index:10;
+  box-shadow:0 0 8px #ff8c00;transition:left .05s linear;
+}
+.playhead::before{
+  content:'';position:absolute;top:-2px;left:-5px;
+  width:12px;height:12px;background:#ff8c00;border-radius:50%;border:2px solid #fff;
+}
+
+/* TOOLBAR */
+.toolbar{
+  display:flex;justify-content:space-around;align-items:center;
+  background:#0a0a0a;
+  padding:6px 4px 10px;
+  border-top:1px solid #1a1a1a;
+  flex-shrink:0;gap:0;
+  overflow-x:auto;scrollbar-width:none;
+}
+.toolbar::-webkit-scrollbar{display:none}
+.tool-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  background:transparent;border:none;color:#888;
+  font-size:9px;padding:5px 3px;
+  flex:1 1 0;min-width:0;
+  border-radius:10px;transition:.15s;cursor:pointer;font-weight:600;
+}
+.tool-btn i{font-size:16px;color:#aaa;margin-bottom:1px}
+.tool-btn:hover{background:#161616;color:#fff}
+.tool-btn:hover i{color:#fff}
+.tool-btn.active{color:#ff8c00;background:#1f1610}
+.tool-btn.active i{color:#ff8c00}
+.tool-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* SETTINGS PANEL */
+.settings-panel{
+  background:#0d0d0d;border-top:1px solid #1a1a1a;
+  padding:12px 14px;display:none;flex-direction:column;gap:10px;
+  flex-shrink:0;max-height:200px;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:#333 #0d0d0d;
+  animation:slideUp .2s ease;
+}
+.settings-panel.visible{display:flex}
+.settings-panel::-webkit-scrollbar{width:4px}
+.settings-panel::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+@keyframes slideUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.panel-title{font-size:12px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.panel-title i{color:#ff8c00;font-size:13px}
+.panel-subtitle{font-size:10px;color:#666;margin-top:-6px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.slider-item{display:flex;align-items:center;gap:8px;color:#ccc;font-size:12px}
+.slider-item label{min-width:58px;font-weight:600;color:#bbb;display:flex;align-items:center;gap:5px;font-size:11px;flex-shrink:0}
+.slider-item label i{color:#ff8c00;font-size:11px;width:12px}
+.slider-item input[type="range"]{flex:1;min-width:0;height:4px;-webkit-appearance:none;background:#2a2a2a;border-radius:4px;outline:none;cursor:pointer}
+.slider-item input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:#ff8c00;border-radius:50%;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 6px rgba(255,140,0,.5)}
+.slider-val{min-width:38px;text-align:right;font-size:11px;color:#ff8c00;font-weight:700;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+.btn-row{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.btn-row button{
+  background:#1e1e1e;border:1px solid #2a2a2a;color:#ddd;
+  padding:6px 11px;border-radius:8px;font-size:11px;font-weight:600;
+  cursor:pointer;transition:.15s;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.btn-row button:hover{background:#2a2a2a;color:#fff}
+.btn-row button.primary{background:#ff8c00;color:#fff;border-color:#ff8c00}
+.btn-row button.primary:hover{background:#ff9f2e}
+
+.filter-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:2px}
+@media(max-width:400px){.filter-grid{grid-template-columns:repeat(3,1fr)}}
+.filter-card{
+  background:#161616;border:1.5px solid #222;border-radius:9px;
+  padding:6px 3px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;transition:.15s;font-size:9px;color:#999;font-weight:600;
+  min-width:0;
+}
+.filter-card:hover{background:#1f1f1f;border-color:#333}
+.filter-card.active{border-color:#ff8c00;background:#1f1610;color:#ff8c00}
+.filter-card span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.filter-card .filter-preview{
+  width:100%;height:24px;border-radius:5px;
+  background:linear-gradient(135deg,#444,#222);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:#888;
+}
+.filter-card.active .filter-preview{background:linear-gradient(135deg,#ff8c00,#ff9f2e);color:#fff}
+
+.text-input{
+  width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#fff;
+  padding:8px 10px;border-radius:8px;font-size:13px;outline:none;font-family:inherit;
+}
+.text-input:focus{border-color:#ff8c00}
+.text-input::placeholder{color:#555}
+
+.speed-grid,.rotate-grid{display:flex;gap:5px;flex-wrap:wrap}
+.speed-chip{
+  background:#1a1a1a;border:1px solid #2a2a2a;color:#ccc;
+  padding:5px 10px;border-radius:18px;font-size:11px;font-weight:700;
+  cursor:pointer;transition:.15s;
+}
+.speed-chip:hover{background:#252525}
+.speed-chip.active{background:#ff8c00;color:#fff;border-color:#ff8c00}
+
+/* STATUS BAR */
+.status-bar{
+  display:flex;justify-content:space-between;
+  padding:4px 12px;font-size:10px;color:#555;
+  background:#080808;border-top:1px solid #151515;
+  flex-shrink:0;gap:8px;min-width:0;
+}
+.status-bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.status-bar #fileInfo{flex:1 1 auto}
+.status-bar #resolutionInfo{flex:0 0 auto;color:#777}
+
+/* TOAST */
+.toast{
+  position:absolute;bottom:80px;left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:#222;color:#fff;padding:9px 16px;border-radius:24px;
+  font-size:12px;font-weight:600;opacity:0;pointer-events:none;
+  transition:.3s;z-index:100;white-space:nowrap;
+  border:1px solid #333;box-shadow:0 8px 24px rgba(0,0,0,.6);
+  max-width:calc(100% - 32px);text-align:center;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{background:#2a1e10;border-color:#5a3d20;color:#ffb84d}
+.toast.error{background:#3a1e22;border-color:#5a2d33;color:#ff7d8a}
+
+/* EXPORT OVERLAY */
+.export-overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
+  z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;padding:24px;
+}
+.export-overlay.visible{display:flex}
+.export-overlay h3{font-size:15px;color:#fff;display:flex;align-items:center;gap:10px;text-align:center}
+.export-overlay h3 i{color:#ff8c00;animation:spin 1.5s linear infinite}
+.export-progress{width:100%;max-width:300px;height:6px;background:#222;border-radius:6px;overflow:hidden}
+.export-progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#ff8c00,#ff9f2e);border-radius:6px;transition:width .15s linear}
+.export-percent{font-size:22px;font-weight:700;color:#ff8c00;font-variant-numeric:tabular-nums}
+.export-hint{font-size:11px;color:#666;text-align:center;max-width:280px;line-height:1.5}
+.export-overlay button{background:#2a1c10;color:#ff8c00;border:1px solid #4a2e1a;padding:9px 22px;border-radius:24px;font-size:12px;font-weight:700;cursor:pointer;margin-top:6px}
+.export-overlay button:hover{background:#3a2515}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.hidden-input{display:none}
+
+/* Узкие экраны */
+@media(max-width:380px){
+  .logo{font-size:12px}
+  .logo i{font-size:14px}
+  .hbtn{width:30px;height:30px;font-size:12px}
+  .hbtn.primary{padding:0 8px;font-size:11px}
+  .tool-btn{font-size:8px}
+  .tool-btn i{font-size:14px}
+  .time-display{font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="editor">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo"><i class="fas fa-video"></i><span>Йцукен Видеоредактор</span></div>
+    <div class="header-actions">
+      <button class="hbtn" id="undoBtn" title="Отменить" disabled><i class="fas fa-undo"></i></button>
+      <button class="hbtn" id="redoBtn" title="Повторить" disabled><i class="fas fa-redo"></i></button>
+      <button class="hbtn danger" id="deleteBtn" title="Удалить клип" disabled><i class="fas fa-trash"></i></button>
+      <button class="hbtn primary" id="exportBtn"><i class="fas fa-download"></i></button>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-container">
+    <div class="video-wrapper" id="videoWrapper">
+      <div class="video-placeholder" id="placeholder">
+        <i class="fas fa-film"></i>
+        <p>Импортируйте до 20 файлов<br>(видео или фото)</p>
+      </div>
+      <video id="videoPreview" playsinline></video>
+      <img id="imagePreview" alt="preview">
+      <div class="video-text-overlay" id="videoTextOverlay" style="display:none"></div>
+      <div class="watermark-preview" id="watermarkPreview">ycukensearch.github.io/video</div>
+      <div class="overlay-preview" id="overlayPreview" style="display:none">
+        <div class="badge-preview" id="speedBadge">1x</div>
+        <div class="badge-preview" id="filterBadge">Оригинал</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="timeline-section">
+    <div class="timeline-top">
+      <div class="tl-label"><i class="fas fa-clock"></i> <span id="clipCount">0/20</span> КЛИПОВ</div>
+      <div class="tl-controls">
+        <button class="zoom-btn" id="zoomOut"><i class="fas fa-minus"></i></button>
+        <span class="zoom-level" id="zoomLevel">1x</span>
+        <button class="zoom-btn" id="zoomIn"><i class="fas fa-plus"></i></button>
+      </div>
+      <div class="time-display" id="durationLabel">00:00 / 00:00</div>
+    </div>
+    <div class="timeline-scroll" id="timelineContainer">
+      <div class="playhead" id="playhead" style="left:0"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS PANEL -->
+  <div class="settings-panel" id="settingsPanel"></div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <button class="tool-btn" id="importBtn"><i class="fas fa-folder-open"></i>Импорт</button>
+    <button class="tool-btn" id="playPauseBtn"><i class="fas fa-play"></i>Играть</button>
+    <button class="tool-btn" id="trimBtn"><i class="fas fa-cut"></i>Обрезка</button>
+    <button class="tool-btn" id="filterBtn"><i class="fas fa-magic"></i>Фильтры</button>
+    <button class="tool-btn" id="textBtn"><i class="fas fa-font"></i>Текст</button>
+    <button class="tool-btn" id="speedBtn"><i class="fas fa-tachometer-alt"></i>Скорость</button>
+    <button class="tool-btn" id="rotateBtn"><i class="fas fa-sync-alt"></i>Поворот</button>
+    <button class="tool-btn" id="volumeBtn"><i class="fas fa-volume-up"></i>Звук</button>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <span id="fileInfo">Нет клипов</span>
+    <span id="resolutionInfo">—</span>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- EXPORT OVERLAY -->
+  <div class="export-overlay" id="exportOverlay">
+    <h3><i class="fas fa-cog"></i> Рендеринг видео</h3>
+    <div class="export-percent" id="exportPercent">0%</div>
+    <div class="export-progress"><div class="export-progress-bar" id="exportProgressBar"></div></div>
+    <div class="export-hint">Идёт запись в реальном времени.<br>Не закрывайте вкладку.</div>
+    <button id="cancelExport">Отменить</button>
+  </div>
+</div>
+
+<input type="file" id="fileInput" class="hidden-input" accept="image/*,video/*" multiple>
+
+<script>
+(function(){
+'use strict';
+
+const $ = id => document.getElementById(id);
+const video = $('videoPreview');
+const imagePreview = $('imagePreview');
+const placeholder = $('placeholder');
+const fileInput = $('fileInput');
+const importBtn = $('importBtn');
+const playPauseBtn = $('playPauseBtn');
+const trimBtn = $('trimBtn');
+const filterBtn = $('filterBtn');
+const textBtn = $('textBtn');
+const speedBtn = $('speedBtn');
+const rotateBtn = $('rotateBtn');
+const volumeBtn = $('volumeBtn');
+const exportBtn = $('exportBtn');
+const deleteBtn = $('deleteBtn');
+const undoBtn = $('undoBtn');
+const redoBtn = $('redoBtn');
+const settingsPanel = $('settingsPanel');
+const durationLabel = $('durationLabel');
+const fileInfo = $('fileInfo');
+const resolutionInfo = $('resolutionInfo');
+const timelineContainer = $('timelineContainer');
+const playhead = $('playhead');
+const zoomIn = $('zoomIn');
+const zoomOut = $('zoomOut');
+const zoomLevel = $('zoomLevel');
+const clipCountEl = $('clipCount');
+const speedBadge = $('speedBadge');
+const filterBadge = $('filterBadge');
+const overlayPreview = $('overlayPreview');
+const videoTextOverlay = $('videoTextOverlay');
+const watermarkPreview = $('watermarkPreview');
+const toast = $('toast');
+const exportOverlay = $('exportOverlay');
+const exportPercent = $('exportPercent');
+const exportProgressBar = $('exportProgressBar');
+const cancelExport = $('cancelExport');
+
+const MAX_CLIPS = 20;
+const PHOTO_DURATION = 3;
+
+const FILTERS = [
+  { id:'none', name:'Оригинал', css:'none' },
+  { id:'grayscale', name:'Ч/Б', css:'grayscale(1)' },
+  { id:'sepia', name:'Сепия', css:'sepia(0.85)' },
+  { id:'saturate', name:'Яркий', css:'saturate(1.8)' },
+  { id:'contrast', name:'Контраст', css:'contrast(1.4)' },
+  { id:'brightness', name:'Светлый', css:'brightness(1.25)' },
+  { id:'blur', name:'Размытие', css:'blur(2px)' },
+  { id:'hue', name:'Оттенок', css:'hue-rotate(90deg)' },
+  { id:'invert', name:'Негатив', css:'invert(1)' },
+  { id:'vintage', name:'Винтаж', css:'sepia(0.4) saturate(1.3) contrast(0.9)' },
+  { id:'cool', name:'Холод', css:'hue-rotate(180deg) saturate(0.8)' },
+  { id:'warm', name:'Тепло', css:'sepia(0.3) saturate(1.4) brightness(1.05)' }
+];
+
+const WATERMARK_TEXT = 'ycukensearch.github.io/video';
+
+let clips = [];
+let activeClipId = null;
+let activeTool = null;
+let timelineZoom = 1;
+let isExporting = false;
+let exportCancelled = false;
+let isPlaying = false;
+let playTimer = null;
+let globalTime = 0;
+
+const history = { stack: [], index: -1, max: 30 };
+
+function fmt(s){
+  if(!isFinite(s)||isNaN(s)) return '00:00';
+  const m=Math.floor(s/60), sec=Math.floor(s%60);
+  return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function escapeHtml(str){return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function uid(){return Math.random().toString(36).slice(2,10);}
+
+let toastTimer;
+function showToast(msg, type=''){
+  toast.textContent = msg;
+  toast.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toast.classList.remove('show'), 2200);
+}
+
+function getActiveClip(){ return clips.find(c=>c.id===activeClipId); }
+
+function createDefaultState(){
+  return {
+    volume:1, playbackRate:1, rotation:0, filter:'none',
+    text:'', textSize:32, textColor:'#ffffff'
+  };
+}
+
+function clipEffectiveDuration(clip){
+  if(clip.type === 'image') return PHOTO_DURATION;
+  return Math.max(0.1, (clip.trimEnd - clip.trimStart) / (clip.state.playbackRate || 1));
+}
+
+function totalDuration(){
+  return clips.reduce((sum,c)=> sum + clipEffectiveDuration(c), 0);
+}
+
+function clipAtTime(t){
+  let acc = 0;
+  for(const c of clips){
+    const d = clipEffectiveDuration(c);
+    if(t < acc + d){
+      return { clip: c, localTime: t - acc, offset: acc };
+    }
+    acc += d;
+  }
+  const last = clips[clips.length-1];
+  return last ? { clip: last, localTime: clipEffectiveDuration(last), offset: totalDuration() - clipEffectiveDuration(last) } : null;
+}
+
+function showPlaceholder(show){
+  placeholder.style.display = show ? 'flex' : 'none';
+}
+
+function renderPreviewForClip(clip, localTime = 0){
+  if(!clip){ showPlaceholder(true); video.style.display='none'; imagePreview.style.display='none'; overlayPreview.style.display='none'; watermarkPreview.style.display='none'; return; }
+  showPlaceholder(false);
+  overlayPreview.style.display = 'flex';
+  watermarkPreview.style.display = 'block';
+
+  if(clip.type === 'video'){
+    video.style.display = 'block';
+    imagePreview.style.display = 'none';
+    if(video.src !== clip.url){
+      video.src = clip.url;
+      video.load();
+    }
+    const targetTime = clip.trimStart + localTime * (clip.state.playbackRate || 1);
+    if(!isPlaying && Math.abs(video.currentTime - targetTime) > 0.15){
+      try { video.currentTime = clamp(targetTime, clip.trimStart, clip.trimEnd); } catch(e){}
+    }
+    applyStateToVideo(clip);
+  } else {
+    video.style.display = 'none';
+    imagePreview.style.display = 'block';
+    if(imagePreview.src !== clip.url) imagePreview.src = clip.url;
+    applyStateToImage(clip);
+  }
+
+  const f = FILTERS.find(x=>x.id===clip.state.filter) || FILTERS[0];
+  speedBadge.textContent = clip.state.playbackRate + 'x';
+  filterBadge.textContent = f.name;
+  speedBadge.style.display = clip.state.playbackRate !== 1 ? 'block' : 'none';
+  filterBadge.style.display = clip.state.filter !== 'none' ? 'block' : 'none';
+
+  if(clip.state.text.trim()){
+    videoTextOverlay.style.display = 'block';
+    videoTextOverlay.textContent = clip.state.text;
+    videoTextOverlay.style.fontSize = clip.state.textSize + 'px';
+    videoTextOverlay.style.color = clip.state.textColor;
+  } else {
+    videoTextOverlay.style.display = 'none';
+  }
+
+  syncWatermarkPreviewSize();
+}
+
+function applyStateToVideo(clip){
+  const f = FILTERS.find(x=>x.id===clip.state.filter) || FILTERS[0];
+  video.style.filter = f.css;
+  video.style.transform = `rotate(${clip.state.rotation}deg)`;
+  video.volume = clip.state.volume;
+  try { video.playbackRate = clip.state.playbackRate; } catch(e){}
+}
+
+function applyStateToImage(clip){
+  const f = FILTERS.find(x=>x.id===clip.state.filter) || FILTERS[0];
+  imagePreview.style.filter = f.css;
+  imagePreview.style.transform = `rotate(${clip.state.rotation}deg)`;
+}
+
+function syncWatermarkPreviewSize(){
+  const el = video.style.display === 'block' ? video : imagePreview;
+  const w = el.clientWidth || el.naturalWidth;
+  if(!w) return;
+  const baseW = video.style.display === 'block' ? (video.videoWidth || w) : (imagePreview.naturalWidth || w);
+  const ratio = w / baseW;
+  const fs = Math.max(8, Math.round(baseW * 0.018 * ratio));
+  const pad = Math.max(4, Math.round(baseW * 0.012 * ratio));
+  watermarkPreview.style.fontSize = fs + 'px';
+  watermarkPreview.style.left = pad + 'px';
+  watermarkPreview.style.bottom = pad + 'px';
+}
+
+function renderTimeline(){
+  timelineContainer.querySelectorAll('.clip').forEach(e=>e.remove());
+  clipCountEl.textContent = clips.length + '/' + MAX_CLIPS;
+
+  if(clips.length === 0){
+    playhead.style.left = '0px';
+    updateTimeDisplay();
+    return;
+  }
+
+  clips.forEach(clip=>{
+    const dur = clipEffectiveDuration(clip);
+    const pxPerSec = 20 * timelineZoom;
+    const w = Math.max(28, Math.min(200, dur * pxPerSec));
+    const el = document.createElement('div');
+    el.className = 'clip' + (clip.id===activeClipId ? ' active' : '') + (clip.type==='image' ? ' photo' : '');
+    el.style.width = w + 'px';
+    el.dataset.id = clip.id;
+    el.innerHTML = `
+      <i class="fas ${clip.type==='video'?'fa-video':'fa-image'}"></i>
+      <span class="clip-type">${clip.type==='video'?'V':'F'}</span>
+      <span class="clip-label">${dur.toFixed(1)}s</span>
+    `;
+    el.addEventListener('click', ()=> selectClip(clip.id));
+    timelineContainer.appendChild(el);
+  });
+
+  updatePlayhead();
+  updateTimeDisplay();
+}
+
+function selectClip(id){
+  activeClipId = id;
+  timelineContainer.querySelectorAll('.clip').forEach(c=>{
+    c.classList.toggle('active', c.dataset.id === id);
+  });
+  updateDeleteButton();
+  const clip = getActiveClip();
+  if(clip){
+    renderPreviewForClip(clip, 0);
+    fileInfo.textContent = clip.file.name.length > 25 ? clip.file.name.substr(0,22)+'...' : clip.file.name;
+    resolutionInfo.textContent = clip.type === 'video'
+      ? `${clip.mediaEl.videoWidth}×${clip.mediaEl.videoHeight}`
+      : `${clip.mediaEl.naturalWidth}×${clip.mediaEl.naturalHeight}`;
+  }
+  if(activeTool) openTool(activeTool, true);
+  updateTimeDisplay();
+  updatePlayhead();
+}
+
+function updateDeleteButton(){ deleteBtn.disabled = !activeClipId; }
+
+function updatePlayhead(){
+  if(clips.length === 0){ playhead.style.left = '0px'; return; }
+  const total = totalDuration();
+  const clipsEls = timelineContainer.querySelectorAll('.clip');
+  if(clipsEls.length === 0) return;
+  const first = clipsEls[0], last = clipsEls[clipsEls.length-1];
+  const totalW = last.offsetLeft + last.offsetWidth - first.offsetLeft;
+  const ratio = total > 0 ? clamp(globalTime / total, 0, 1) : 0;
+  const x = ratio * totalW + first.offsetLeft;
+  playhead.style.left = Math.max(0, x) + 'px';
+
+  const containerRect = timelineContainer.getBoundingClientRect();
+  const phRect = playhead.getBoundingClientRect();
+  if(phRect.left < containerRect.left + 30){
+    timelineContainer.scrollLeft += phRect.left - containerRect.left - 30;
+  } else if(phRect.right > containerRect.right - 30){
+    timelineContainer.scrollLeft += phRect.right - containerRect.right + 30;
+  }
+}
+
+function updateTimeDisplay(){
+  const total = totalDuration();
+  durationLabel.textContent = fmt(globalTime) + ' / ' + fmt(total);
+}
+
+importBtn.addEventListener('click', ()=> fileInput.click());
+
+fileInput.addEventListener('change', async (e)=>{
+  const files = Array.from(e.target.files);
+  fileInput.value = '';
+  if(files.length === 0) return;
+
+  const remaining = MAX_CLIPS - clips.length;
+  if(remaining <= 0){ showToast('Достигнут лимит 20 файлов', 'error'); return; }
+  const toAdd = files.slice(0, remaining);
+  if(files.length > remaining){
+    showToast(`Добавлено ${remaining} из ${files.length} (лимит 20)`, 'error');
+  }
+
+  let addedCount = 0;
+  for(const file of toAdd){
+    try {
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const videoExts = ['mp4','mov','webm','mkv','avi','m4v','ogv','3gp','flv'];
+      const imageExts = ['jpg','jpeg','png','gif','webp','bmp','heic','heif','avif'];
+      let isVideo = file.type.startsWith('video/');
+      let isImage = file.type.startsWith('image/');
+      if(!isVideo && !isImage){
+        if(videoExts.includes(ext)) isVideo = true;
+        else if(imageExts.includes(ext)) isImage = true;
+      }
+      if(!isVideo && !isImage) continue;
+
+      const url = URL.createObjectURL(file);
+      const clip = {
+        id: uid(),
+        type: isVideo ? 'video' : 'image',
+        file, url,
+        duration: 0,
+        trimStart: 0,
+        trimEnd: 0,
+        state: createDefaultState(),
+        mediaEl: null
+      };
+
+      if(isVideo){
+        const v = document.createElement('video');
+        v.src = url; v.muted = true; v.preload = 'metadata';
+        v.playsInline = true;
+        await new Promise((res)=>{
+          const done = ()=>res();
+          v.onloadedmetadata = done;
+          v.onerror = done;
+          setTimeout(done, 4000);
+        });
+        clip.duration = v.duration || 0;
+        clip.trimEnd = clip.duration;
+        clip.mediaEl = v;
+      } else {
+        const img = new Image();
+        img.src = url;
+        await new Promise((res)=>{
+          const done = ()=>res();
+          img.onload = done;
+          img.onerror = done;
+          setTimeout(done, 3000);
+        });
+        clip.duration = PHOTO_DURATION;
+        clip.trimEnd = PHOTO_DURATION;
+        clip.mediaEl = img;
+      }
+
+      clips.push(clip);
+      addedCount++;
+    } catch(err){
+      console.warn('Не удалось загрузить файл', file.name, err);
+    }
+  }
+
+  if(addedCount === 0){ showToast('Не удалось добавить файлы', 'error'); return; }
+
+  if(clips.length > 0 && !activeClipId){
+    activeClipId = clips[0].id;
+  }
+  renderTimeline();
+  if(activeClipId) selectClip(activeClipId);
+  pushHistory();
+  showToast(`Добавлено ${addedCount}. Всего: ${clips.length}`, 'success');
+});
+
+playPauseBtn.addEventListener('click', ()=>{
+  if(clips.length === 0){ importBtn.click(); return; }
+  if(isPlaying) pausePlayback(); else startPlayback();
+});
+
+function startPlayback(){
+  if(clips.length === 0) return;
+  if(globalTime >= totalDuration()) globalTime = 0;
+  isPlaying = true;
+  playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>Пауза';
+  playPauseBtn.classList.add('active');
+
+  const info = clipAtTime(globalTime);
+  if(info){
+    if(info.clip.id !== activeClipId) selectClip(info.clip.id);
+    if(info.clip.type === 'video'){
+      video.currentTime = info.clip.trimStart + info.localTime * info.clip.state.playbackRate;
+      video.play().catch(()=>{});
+    }
+  }
+
+  const startTs = performance.now();
+  const startTime = globalTime;
+
+  function tick(now){
+    if(!isPlaying) return;
+    const elapsed = (now - startTs) / 1000;
+    globalTime = startTime + elapsed;
+
+    const total = totalDuration();
+    if(globalTime >= total){
+      globalTime = total;
+      pausePlayback();
+      return;
+    }
+
+    const info = clipAtTime(globalTime);
+    if(info){
+      if(info.clip.id !== activeClipId){
+        selectClip(info.clip.id);
+        if(info.clip.type === 'video'){
+          video.currentTime = info.clip.trimStart + info.localTime * info.clip.state.playbackRate;
+          video.play().catch(()=>{});
+        }
+      }
+      if(info.clip.type === 'video' && video.style.display==='block'){
+        const target = info.clip.trimStart + info.localTime * info.clip.state.playbackRate;
+        if(Math.abs(video.currentTime - target) > 0.3){
+          video.currentTime = target;
+        }
+      }
+    }
+
+    updateTimeDisplay();
+    updatePlayhead();
+    playTimer = requestAnimationFrame(tick);
+  }
+  playTimer = requestAnimationFrame(tick);
+}
+
+function pausePlayback(){
+  isPlaying = false;
+  playPauseBtn.innerHTML = '<i class="fas fa-play"></i>Играть';
+  playPauseBtn.classList.remove('active');
+  if(playTimer){ cancelAnimationFrame(playTimer); playTimer = null; }
+  try { video.pause(); } catch(e){}
+}
+
+function seekFromClientX(clientX){
+  if(clips.length === 0 || isExporting) return;
+  const clipEls = timelineContainer.querySelectorAll('.clip');
+  if(clipEls.length === 0) return;
+  const rect = timelineContainer.getBoundingClientRect();
+  const first = clipEls[0], last = clipEls[clipEls.length-1];
+  const totalW = last.offsetLeft + last.offsetWidth - first.offsetLeft;
+  const x = clientX - rect.left + timelineContainer.scrollLeft - first.offsetLeft;
+  const ratio = clamp(x / totalW, 0, 1);
+  const total = totalDuration();
+  globalTime = ratio * total;
+  const info = clipAtTime(globalTime);
+  if(info){
+    if(info.clip.id !== activeClipId) selectClip(info.clip.id);
+    if(info.clip.type === 'video'){
+      video.currentTime = info.clip.trimStart + info.localTime * info.clip.state.playbackRate;
+    }
+  }
+  updatePlayhead();
+  updateTimeDisplay();
+}
+
+let isSeeking = false;
+timelineContainer.addEventListener('mousedown', e=>{
+  if(e.target === playhead || isExporting) return;
+  isSeeking = true;
+  if(isPlaying) pausePlayback();
+  seekFromClientX(e.clientX);
+});
+window.addEventListener('mousemove', e=>{ if(isSeeking) seekFromClientX(e.clientX); });
+window.addEventListener('mouseup', ()=> isSeeking = false);
+timelineContainer.addEventListener('touchstart', e=>{
+  if(isExporting) return;
+  isSeeking = true;
+  if(isPlaying) pausePlayback();
+  seekFromClientX(e.touches[0].clientX);
+}, {passive:true});
+timelineContainer.addEventListener('touchmove', e=>{
+  if(isSeeking) seekFromClientX(e.touches[0].clientX);
+}, {passive:true});
+timelineContainer.addEventListener('touchend', ()=> isSeeking = false);
+
+deleteBtn.addEventListener('click', ()=>{
+  if(!activeClipId) return;
+  const idx = clips.findIndex(c=>c.id===activeClipId);
+  if(idx === -1) return;
+  const clip = clips[idx];
+  if(clip.url) URL.revokeObjectURL(clip.url);
+  clips.splice(idx, 1);
+  if(clips.length === 0){
+    activeClipId = null;
+    video.style.display = 'none';
+    imagePreview.style.display = 'none';
+    showPlaceholder(true);
+    overlayPreview.style.display = 'none';
+    watermarkPreview.style.display = 'none';
+    videoTextOverlay.style.display = 'none';
+    fileInfo.textContent = 'Нет клипов';
+    resolutionInfo.textContent = '—';
+  } else {
+    activeClipId = clips[Math.min(idx, clips.length-1)].id;
+  }
+  globalTime = 0;
+  renderTimeline();
+  if(activeClipId) selectClip(activeClipId);
+  updateDeleteButton();
+  pushHistory();
+  showToast('Клип удалён');
+});
+
+function snapshot(){
+  return {
+    clips: clips.map(c=>({
+      id:c.id, type:c.type, duration:c.duration,
+      trimStart:c.trimStart, trimEnd:c.trimEnd,
+      state: JSON.parse(JSON.stringify(c.state))
+    })),
+    activeClipId
+  };
+}
+function pushHistory(){
+  if(history.index < history.stack.length - 1){
+    history.stack = history.stack.slice(0, history.index + 1);
+  }
+  history.stack.push(snapshot());
+  if(history.stack.length > history.max) history.stack.shift();
+  history.index = history.stack.length - 1;
+  updateHistoryButtons();
+}
+function updateHistoryButtons(){
+  undoBtn.disabled = history.index <= 0;
+  redoBtn.disabled = history.index >= history.stack.length - 1;
+}
+function undo(){
+  if(history.index <= 0) return;
+  history.index--;
+  restoreFromSnapshot(history.stack[history.index]);
+  updateHistoryButtons();
+  showToast('Отменено');
+}
+function redo(){
+  if(history.index >= history.stack.length - 1) return;
+  history.index++;
+  restoreFromSnapshot(history.stack[history.index]);
+  updateHistoryButtons();
+  showToast('Повторено');
+}
+function restoreFromSnapshot(snap){
+  for(const s of snap.clips){
+    const c = clips.find(x=>x.id===s.id);
+    if(c){
+      c.trimStart = s.trimStart;
+      c.trimEnd = s.trimEnd;
+      c.state = JSON.parse(JSON.stringify(s.state));
+    }
+  }
+  activeClipId = snap.activeClipId;
+  renderTimeline();
+  if(activeClipId) selectClip(activeClipId);
+  updateDeleteButton();
+  if(activeTool) openTool(activeTool, true);
+}
+
+undoBtn.addEventListener('click', undo);
+redoBtn.addEventListener('click', redo);
+
+function closePanel(){
+  settingsPanel.classList.remove('visible');
+  settingsPanel.innerHTML = '';
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  activeTool = null;
+}
+function openTool(tool, force=false){
+  if(!activeClipId){
+    showToast('Выберите клип на таймлайне', 'error');
+    return;
+  }
+  const clip = getActiveClip();
+  if(!clip) return;
+  if(clip.type === 'image' && (tool==='trim' || tool==='speed' || tool==='volume')){
+    showToast('Недоступно для фото', 'error');
+    return;
+  }
+  if(activeTool === tool && !force){ closePanel(); return; }
+  closePanel();
+  activeTool = tool;
+  const btn = $(tool + 'Btn');
+  if(btn) btn.classList.add('active');
+  settingsPanel.classList.add('visible');
+
+  switch(tool){
+    case 'trim': buildTrimPanel(); break;
+    case 'filter': buildFilterPanel(); break;
+    case 'text': buildTextPanel(); break;
+    case 'speed': buildSpeedPanel(); break;
+    case 'rotate': buildRotatePanel(); break;
+    case 'volume': buildVolumePanel(); break;
+  }
+}
+
+function buildTrimPanel(){
+  const clip = getActiveClip();
+  if(!clip) return;
+  if(clip.type === 'image'){
+    settingsPanel.innerHTML = `<div class="panel-title"><i class="fas fa-cut"></i> Обрезка</div>
+      <div class="panel-subtitle">Фото отображается ${PHOTO_DURATION} секунд по умолчанию.</div>`;
+    return;
+  }
+  settingsPanel.innerHTML = `
+    <div class="panel-title"><i class="fas fa-cut"></i> Обрезка клипа</div>
+    <div class="panel-subtitle">${escapeHtml(clip.file.name)}</div>
+    <div class="slider-item">
+      <label><i class="fas fa-play"></i> Начало</label>
+      <input type="range" id="trimStartSlider" min="0" max="${clip.duration}" step="0.1" value="${clip.trimStart}">
+      <span class="slider-val" id="trimStartVal">${clip.trimStart.toFixed(1)}s</span>
+    </div>
+    <div class="slider-item">
+      <label><i class="fas fa-stop"></i> Конец</label>
+      <input type="range" id="trimEndSlider" min="0" max="${clip.duration}" step="0.1" value="${clip.trimEnd}">
+      <span class="slider-val" id="trimEndVal">${clip.trimEnd.toFixed(1)}s</span>
+    </div>
+    <div class="btn-row">
+      <button id="trimSetStart">Начало здесь</button>
+      <button id="trimSetEnd">Конец здесь</button>
+      <button class="primary" id="trimApply">Применить</button>
+    </div>
+  `;
+  const s = $('trimStartSlider'), e = $('trimEndSlider');
+  const sv = $('trimStartVal'), ev = $('trimEndVal');
+
+  s.addEventListener('input', ()=>{
+    clip.trimStart = clamp(parseFloat(s.value), 0, clip.trimEnd - 0.1);
+    s.value = clip.trimStart;
+    sv.textContent = clip.trimStart.toFixed(1)+'s';
+    if(video.src === clip.url && video.currentTime < clip.trimStart) video.currentTime = clip.trimStart;
+    renderTimeline();
+    updateTimeDisplay();
+  });
+  e.addEventListener('input', ()=>{
+    clip.trimEnd = clamp(parseFloat(e.value), clip.trimStart + 0.1, clip.duration);
+    e.value = clip.trimEnd;
+    ev.textContent = clip.trimEnd.toFixed(1)+'s';
+    renderTimeline();
+    updateTimeDisplay();
+  });
+  $('trimSetStart').addEventListener('click', ()=>{
+    if(video.src !== clip.url) return;
+    clip.trimStart = clamp(video.currentTime, 0, clip.trimEnd - 0.1);
+    s.value = clip.trimStart; sv.textContent = clip.trimStart.toFixed(1)+'s';
+    renderTimeline();
+    updateTimeDisplay();
+  });
+  $('trimSetEnd').addEventListener('click', ()=>{
+    if(video.src !== clip.url) return;
+    clip.trimEnd = clamp(video.currentTime, clip.trimStart + 0.1, clip.duration);
+    e.value = clip.trimEnd; ev.textContent = clip.trimEnd.toFixed(1)+'s';
+    renderTimeline();
+    updateTimeDisplay();
+  });
+  $('trimApply').addEventListener('click', ()=>{
+    pushHistory();
+    renderTimeline();
+    updateTimeDisplay();
+    showToast(`Обрезка: ${(clip.trimEnd-clip.trimStart).toFixed(1)}s`, 'success');
+    closePanel();
+  });
+}
+
+function buildFilterPanel(){
+  const clip = getActiveClip();
+  if(!clip) return;
+  const html = FILTERS.map(f=>`
+    <div class="filter-card ${clip.state.filter===f.id?'active':''}" data-filter="${f.id}">
+      <div class="filter-preview"><i class="fas fa-image"></i></div>
+      <span>${f.name}</span>
+    </div>
+  `).join('');
+  settingsPanel.innerHTML = `
+    <div class="panel-title"><i class="fas fa-magic"></i> Фильтры</div>
+    <div class="filter-grid">${html}</div>
+    <div class="btn-row"><button id="filterReset">Сбросить</button></div>
+  `;
+  settingsPanel.querySelectorAll('.filter-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      clip.state.filter = card.dataset.filter;
+      applyStateToVideo(clip);
+      applyStateToImage(clip);
+      renderPreviewForClip(clip, 0);
+      settingsPanel.querySelectorAll('.filter-card').forEach(c=>c.classList.remove('active'));
+      card.classList.add('active');
+      pushHistory();
+    });
+  });
+  $('filterReset').addEventListener('click', ()=>{
+    clip.state.filter = 'none';
+    renderPreviewForClip(clip, 0);
+    settingsPanel.querySelectorAll('.filter-card').forEach(c=>c.classList.toggle('active', c.dataset.filter==='none'));
+    pushHistory();
+  });
+}
+
+function buildTextPanel(){
+  const clip = getActiveClip();
+  if(!clip) return;
+  settingsPanel.innerHTML = `
+    <div class="panel-title"><i class="fas fa-font"></i> Текст на клипе</div>
+    <input class="text-input" id="textInput" type="text" placeholder="Введите текст..." value="${escapeHtml(clip.state.text)}">
+    <div class="slider-item">
+      <label><i class="fas fa-text-height"></i> Размер</label>
+      <input type="range" id="textSizeSlider" min="12" max="72" step="1" value="${clip.state.textSize}">
+      <span class="slider-val" id="textSizeVal">${clip.state.textSize}px</span>
+    </div>
+    <div class="slider-item">
+      <label><i class="fas fa-palette"></i> Цвет</label>
+      <input type="color" id="textColorPicker" value="${clip.state.textColor}" style="width:40px;height:30px;border:none;border-radius:8px;background:transparent;cursor:pointer">
+      <div style="flex:1"></div>
+      <button id="textClear" style="background:#2a1c10;color:#ff8c00;border:1px solid #4a2e1a;padding:6px 11px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer">Очистить</button>
+    </div>
+  `;
+  const inp = $('textInput'), size = $('textSizeSlider'), sizeV = $('textSizeVal'), color = $('textColorPicker');
+  let pushTimer;
+  const debouncedPush = ()=>{ clearTimeout(pushTimer); pushTimer = setTimeout(pushHistory, 500); };
+
+  inp.addEventListener('input', ()=>{
+    clip.state.text = inp.value;
+    if(activeClipId === clip.id){
+      if(clip.state.text.trim()){
+        videoTextOverlay.style.display = 'block';
+        videoTextOverlay.textContent = clip.state.text;
+      } else videoTextOverlay.style.display = 'none';
+    }
+    debouncedPush();
+  });
+  size.addEventListener('input', ()=>{
+    clip.state.textSize = parseInt(size.value);
+    sizeV.textContent = clip.state.textSize + 'px';
+    if(activeClipId === clip.id) videoTextOverlay.style.fontSize = clip.state.textSize + 'px';
+    debouncedPush();
+  });
+  color.addEventListener('input', ()=>{
+    clip.state.textColor = color.value;
+    if(activeClipId === clip.id) videoTextOverlay.style.color = clip.state.textColor;
+    debouncedPush();
+  });
+  $('textClear').addEventListener('click', ()=>{
+    clip.state.text = '';
+    inp.value = '';
+    if(activeClipId === clip.id) videoTextOverlay.style.display = 'none';
+    pushHistory();
+    showToast('Текст удалён');
+  });
+}
+
+function buildSpeedPanel(){
+  const clip = getActiveClip();
+  if(!clip) return;
+  const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+  settingsPanel.innerHTML = `
+    <div class="panel-title"><i class="fas fa-tachometer-alt"></i> Скорость</div>
+    <div class="speed-grid">
+      ${speeds.map(s=>`<div class="speed-chip ${clip.state.playbackRate===s?'active':''}" data-speed="${s}">${s}x</div>`).join('')}
+    </div>
+    <div class="slider-item">
+      <label><i class="fas fa-sliders-h"></i> Точно</label>
+      <input type="range" id="speedSlider" min="0.25" max="3" step="0.05" value="${clip.state.playbackRate}">
+      <span class="slider-val" id="speedVal">${clip.state.playbackRate}x</span>
+    </div>
+  `;
+  settingsPanel.querySelectorAll('.speed-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      clip.state.playbackRate = parseFloat(chip.dataset.speed);
+      if(activeClipId === clip.id && video.src === clip.url) video.playbackRate = clip.state.playbackRate;
+      settingsPanel.querySelectorAll('.speed-chip').forEach(c=>c.classList.toggle('active', parseFloat(c.dataset.speed)===clip.state.playbackRate));
+      $('speedSlider').value = clip.state.playbackRate;
+      $('speedVal').textContent = clip.state.playbackRate + 'x';
+      renderTimeline();
+      pushHistory();
+    });
+  });
+  const sl = $('speedSlider'), sv = $('speedVal');
+  sl.addEventListener('input', ()=>{
+    clip.state.playbackRate = parseFloat(sl.value);
+    if(activeClipId === clip.id && video.src === clip.url) video.playbackRate = clip.state.playbackRate;
+    sv.textContent = clip.state.playbackRate + 'x';
+    renderTimeline();
+  });
+  sl.addEventListener('change', pushHistory);
+}
+
+function buildRotatePanel(){
+  const clip = getActiveClip();
+  if(!clip) return;
+  const angles = [0, 90, 180, 270];
+  settingsPanel.innerHTML = `
+    <div class="panel-title"><i class="fas fa-sync-alt"></i> Поворот</div>
+    <div class="rotate-grid">
+      ${angles.map(a=>`<div class="speed-chip ${clip.state.rotation===a?'active':''}" data-rot="${a}">${a}°</div>`).join('')}
+    </div>
+    <div class="btn-row">
+      <button id="rotLeft"><i class="fas fa-undo"></i> -90°</button>
+      <button id="rotRight"><i class="fas fa-redo"></i> +90°</button>
+      <button class="primary" id="rotReset">Сброс</button>
+    </div>
+  `;
+  settingsPanel.querySelectorAll('[data-rot]').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      clip.state.rotation = parseInt(chip.dataset.rot);
+      applyStateToVideo(clip); applyStateToImage(clip);
+      settingsPanel.querySelectorAll('[data-rot]').forEach(c=>c.classList.toggle('active', parseInt(c.dataset.rot)===clip.state.rotation));
+      pushHistory();
+    });
+  });
+  $('rotLeft').addEventListener('click', ()=>{
+    clip.state.rotation = (clip.state.rotation - 90 + 360) % 360;
+    applyStateToVideo(clip); applyStateToImage(clip);
+    settingsPanel.querySelectorAll('[data-rot]').forEach(c=>c.classList.toggle('active', parseInt(c.dataset.rot)===clip.state.rotation));
+    pushHistory();
+  });
+  $('rotRight').addEventListener('click', ()=>{
+    clip.state.rotation = (clip.state.rotation + 90) % 360;
+    applyStateToVideo(clip); applyStateToImage(clip);
+    settingsPanel.querySelectorAll('[data-rot]').forEach(c=>c.classList.toggle('active', parseInt(c.dataset.rot)===clip.state.rotation));
+    pushHistory();
+  });
+  $('rotReset').addEventListener('click', ()=>{
+    clip.state.rotation = 0;
+    applyStateToVideo(clip); applyStateToImage(clip);
+    settingsPanel.querySelectorAll('[data-rot]').forEach(c=>c.classList.toggle('active', parseInt(c.dataset.rot)===0));
+    pushHistory();
+  });
+}
+
+function buildVolumePanel(){
+  const clip = getActiveClip();
+  if(!clip) return;
+  settingsPanel.innerHTML = `
+    <div class="panel-title"><i class="fas fa-volume-up"></i> Громкость клипа</div>
+    <div class="slider-item">
+      <label><i class="fas fa-volume-down"></i> Уровень</label>
+      <input type="range" id="volSlider" min="0" max="1" step="0.01" value="${clip.state.volume}">
+      <span class="slider-val" id="volVal">${Math.round(clip.state.volume*100)}%</span>
+    </div>
+    <div class="btn-row">
+      <button id="volMute"><i class="fas fa-volume-mute"></i> Без звука</button>
+      <button class="primary" id="volApply">Применить</button>
+    </div>
+  `;
+  const sl = $('volSlider'), val = $('volVal');
+  sl.addEventListener('input', ()=>{
+    clip.state.volume = parseFloat(sl.value);
+    if(activeClipId === clip.id && video.src === clip.url) video.volume = clip.state.volume;
+    val.textContent = Math.round(clip.state.volume*100)+'%';
+  });
+  $('volMute').addEventListener('click', ()=>{
+    clip.state.volume = 0;
+    if(activeClipId === clip.id && video.src === clip.url) video.volume = 0;
+    sl.value = 0; val.textContent = '0%';
+    pushHistory();
+  });
+  $('volApply').addEventListener('click', ()=>{
+    pushHistory(); closePanel();
+    showToast('Громкость: ' + Math.round(clip.state.volume*100) + '%', 'success');
+  });
+}
+
+trimBtn.addEventListener('click', ()=>openTool('trim'));
+filterBtn.addEventListener('click', ()=>openTool('filter'));
+textBtn.addEventListener('click', ()=>openTool('text'));
+speedBtn.addEventListener('click', ()=>openTool('speed'));
+rotateBtn.addEventListener('click', ()=>openTool('rotate'));
+volumeBtn.addEventListener('click', ()=>openTool('volume'));
+
+zoomIn.addEventListener('click', ()=>{
+  timelineZoom = clamp(timelineZoom * 1.4, 0.4, 6);
+  zoomLevel.textContent = timelineZoom.toFixed(1)+'x';
+  renderTimeline();
+});
+zoomOut.addEventListener('click', ()=>{
+  timelineZoom = clamp(timelineZoom / 1.4, 0.4, 6);
+  zoomLevel.textContent = timelineZoom.toFixed(1)+'x';
+  renderTimeline();
+});
+
+async function exportVideo(){
+  if(clips.length === 0){ showToast('Добавьте файлы', 'error'); return; }
+  if(isExporting) return;
+
+  if(typeof MediaRecorder === 'undefined'){
+    showToast('Браузер не поддерживает запись', 'error'); return;
+  }
+
+  const mimeCandidates = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  let mimeType = '';
+  for(const m of mimeCandidates){
+    if(MediaRecorder.isTypeSupported(m)){ mimeType = m; break; }
+  }
+  if(!mimeType){ showToast('Формат WebM не поддерживается', 'error'); return; }
+
+  if(isPlaying) pausePlayback();
+
+  const first = clips[0];
+  let width = 1280, height = 720;
+  if(first.type === 'video' && first.mediaEl){
+    width = first.mediaEl.videoWidth || width;
+    height = first.mediaEl.videoHeight || height;
+  } else if(first.type === 'image' && first.mediaEl){
+    width = first.mediaEl.naturalWidth || width;
+    height = first.mediaEl.naturalHeight || height;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  const expVideo = document.createElement('video');
+  expVideo.muted = false;
+  expVideo.playsInline = true;
+  expVideo.crossOrigin = 'anonymous';
+
+  const canvasStream = canvas.captureStream(30);
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const dest = audioCtx.createMediaStreamDestination();
+
+  let srcNode = null;
+
+  const mixedStream = new MediaStream([...canvasStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+
+  const chunks = [];
+  let recorder;
+  try {
+    recorder = new MediaRecorder(mixedStream, { mimeType, videoBitsPerSecond: 4_000_000 });
+  } catch(err){
+    showToast('Ошибка рекордера: ' + err.message, 'error'); return;
+  }
+  recorder.ondataavailable = e => { if(e.data && e.data.size > 0) chunks.push(e.data); };
+  const donePromise = new Promise(resolve => { recorder.onstop = () => resolve(); });
+
+  isExporting = true;
+  exportCancelled = false;
+  exportOverlay.classList.add('visible');
+  exportPercent.textContent = '0%';
+  exportProgressBar.style.width = '0%';
+  exportBtn.disabled = true;
+  playPauseBtn.disabled = true;
+  deleteBtn.disabled = true;
+  importBtn.disabled = true;
+
+  const total = totalDuration();
+  const wmFontSize = Math.max(12, Math.round(canvas.width * 0.018));
+  const wmPadding = Math.max(8, Math.round(canvas.width * 0.012));
+
+  function drawWatermark(){
+    ctx.save();
+    ctx.font = `600 ${wmFontSize}px 'Segoe UI', Arial, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.lineWidth = Math.max(2, Math.round(wmFontSize / 6));
+    ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+    ctx.lineJoin = 'round';
+    ctx.strokeText(WATERMARK_TEXT, wmPadding, canvas.height - wmPadding);
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 1;
+    ctx.fillText(WATERMARK_TEXT, wmPadding, canvas.height - wmPadding);
+    ctx.restore();
+  }
+
+  function drawClipFrame(clip, mediaEl){
+    ctx.save();
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    const rotation = clip.state.rotation;
+    const rotated90 = (rotation === 90 || rotation === 270);
+    const drawW = rotated90 ? canvas.height : canvas.width;
+    const drawH = rotated90 ? canvas.width : canvas.height;
+
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    const f = FILTERS.find(x=>x.id===clip.state.filter) || FILTERS[0];
+    try { ctx.filter = f.css; } catch(e){}
+    try {
+      ctx.drawImage(mediaEl, -drawW/2, -drawH/2, drawW, drawH);
+    } catch(e){}
+    ctx.restore();
+    ctx.filter = 'none';
+
+    if(clip.state.text.trim()){
+      ctx.save();
+      ctx.font = `bold ${clip.state.textSize * (canvas.width / 520)}px 'Segoe UI', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = clip.state.textColor;
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetY = 2;
+      ctx.fillText(clip.state.text, canvas.width/2, canvas.height/2);
+      ctx.restore();
+    }
+    drawWatermark();
+  }
+
+  const wait = ms => new Promise(r=>setTimeout(r, ms));
+
+  try {
+    await audioCtx.resume();
+    recorder.start(100);
+
+    let cancelled = false;
+
+    async function playAll(){
+      for(let i=0; i<clips.length; i++){
+        if(cancelled || exportCancelled) return;
+        const clip = clips[i];
+
+        if(clip.type === 'video'){
+          expVideo.src = clip.url;
+          expVideo.volume = clip.state.volume;
+          expVideo.playbackRate = clip.state.playbackRate || 1;
+          expVideo.muted = clip.state.volume === 0;
+          await new Promise(res => {
+            if(expVideo.readyState >= 1) res();
+            else expVideo.addEventListener('loadedmetadata', res, {once:true});
+            setTimeout(res, 1500);
+          });
+
+          try { srcNode = audioCtx.createMediaElementSource(expVideo); } catch(e){ srcNode = null; }
+          if(srcNode){
+            try { srcNode.connect(dest); } catch(e){}
+          }
+
+          expVideo.currentTime = clip.trimStart;
+          await new Promise(r=>setTimeout(r, 200));
+          await expVideo.play().catch(()=>{});
+
+          const clipDur = clipEffectiveDuration(clip);
+          const clipStartTs = performance.now();
+
+          await new Promise(resolve => {
+            function loop(){
+              if(cancelled || exportCancelled){ try{expVideo.pause();}catch(e){} resolve(); return; }
+              drawClipFrame(clip, expVideo);
+
+              const elapsed = (performance.now() - clipStartTs)/1000;
+              const overallElapsed = clips.slice(0, i).reduce((s,c)=>s+clipEffectiveDuration(c),0) + Math.min(elapsed, clipDur);
+              const pct = clamp((overallElapsed / total) * 100, 0, 100);
+              exportPercent.textContent = Math.round(pct) + '%';
+              exportProgressBar.style.width = pct + '%';
+
+              if(elapsed >= clipDur || expVideo.currentTime >= clip.trimEnd - 0.02){
+                try { expVideo.pause(); } catch(e){}
+                if(srcNode){ try{ srcNode.disconnect(dest); }catch(e){} }
+                resolve();
+                return;
+              }
+              requestAnimationFrame(loop);
+            }
+            loop();
+          });
+        } else {
+          const img = new Image();
+          img.src = clip.url;
+          await new Promise(res=>{
+            if(img.complete) res();
+            else img.onload = res;
+            setTimeout(res, 1000);
+          });
+
+          const clipStartTs = performance.now();
+          await new Promise(resolve=>{
+            function loop(){
+              if(cancelled || exportCancelled){ resolve(); return; }
+              drawClipFrame(clip, img);
+              const elapsed = (performance.now() - clipStartTs)/1000;
+              const overallElapsed = clips.slice(0, i).reduce((s,c)=>s+clipEffectiveDuration(c),0) + Math.min(elapsed, PHOTO_DURATION);
+              const pct = clamp((overallElapsed / total) * 100, 0, 100);
+              exportPercent.textContent = Math.round(pct) + '%';
+              exportProgressBar.style.width = pct + '%';
+              if(elapsed >= PHOTO_DURATION){ resolve(); return; }
+              requestAnimationFrame(loop);
+            }
+            loop();
+          });
+        }
+      }
+    }
+
+    await playAll();
+
+    if(!cancelled && !exportCancelled){
+      await wait(200);
+    }
+    try { recorder.stop(); } catch(e){}
+    await donePromise;
+
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    if(exportCancelled || blob.size === 0){
+      cleanup();
+      showToast('Экспорт отменён', 'error');
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `video_${Date.now()}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 10000);
+    const sizeMB = (blob.size / (1024*1024)).toFixed(1);
+    showToast(`Готово! ${sizeMB} МБ скачано`, 'success');
+
+  } catch(err){
+    console.error(err);
+    showToast('Ошибка экспорта: ' + err.message, 'error');
+  } finally {
+    cleanup();
+  }
+
+  function cleanup(){
+    isExporting = false;
+    exportCancelled = false;
+    exportOverlay.classList.remove('visible');
+    exportBtn.disabled = false;
+    playPauseBtn.disabled = false;
+    deleteBtn.disabled = !activeClipId;
+    importBtn.disabled = false;
+    canvasStream.getTracks().forEach(t => t.stop());
+    try { audioCtx.close(); } catch(e){}
+    try { expVideo.pause(); expVideo.src=''; } catch(e){}
+  }
+
+  cancelExport.onclick = () => {
+    exportCancelled = true;
+  };
+}
+
+exportBtn.addEventListener('click', exportVideo);
+
+document.addEventListener('keydown', e=>{
+  if(isExporting) return;
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if(e.code === 'Space'){
+    e.preventDefault();
+    if(clips.length) isPlaying ? pausePlayback() : startPlayback();
+  }
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){
+    e.preventDefault();
+    e.shiftKey ? redo() : undo();
+  }
+  if((e.key === 'Delete' || e.key === 'Backspace') && activeClipId && !e.ctrlKey && !e.metaKey){
+    e.preventDefault();
+    deleteBtn.click();
+  }
+});
+
+let resizeTimer;
+window.addEventListener('resize', ()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(()=>{
+    updatePlayhead();
+    syncWatermarkPreviewSize();
+  }, 100);
+});
+if(window.ResizeObserver){
+  new ResizeObserver(()=> syncWatermarkPreviewSize()).observe(video);
+  new ResizeObserver(()=> syncWatermarkPreviewSize()).observe(imagePreview);
+}
+
+renderTimeline();
+updateHistoryButtons();
+updateDeleteButton();
+speedBadge.style.display = 'none';
+filterBadge.style.display = 'none';
+watermarkPreview.style.display = 'none';
+showPlaceholder(true);
+
+})();
+</script>
+</body>
+  </html>
